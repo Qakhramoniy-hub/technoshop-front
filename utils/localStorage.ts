@@ -134,3 +134,58 @@ export const clearCart = (): CartProduct[] => {
   dispatchStorageEvent();
   return [];
 };
+
+// --- USER AUTHENTICATION MANTIQI ---
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  password: string;
+  isAdmin?: boolean;
+}
+
+const USERS_KEY = "registeredUsers";
+
+export const getRegisteredUsers = (): User[] => {
+  if (typeof window === "undefined") return [];
+  const storedUsers = localStorage.getItem(USERS_KEY);
+  try {
+    return storedUsers ? JSON.parse(storedUsers) : [];
+  } catch (e) {
+    console.error("Registered usersni yuklashda xatolik:", e);
+    return [];
+  }
+};
+
+export const registerUser = (user: Omit<User, 'id'>): User => {
+  const users = getRegisteredUsers();
+  
+  // Check if email already exists
+  const emailExists = users.some(u => u.email === user.email);
+  if (emailExists) {
+    throw new Error('Bu email allaqachon ro\'yxatdan o\'tgan');
+  }
+  
+  const newUser: User = {
+    ...user,
+    id: Date.now().toString(),
+  };
+  
+  const updatedUsers = [...users, newUser];
+  localStorage.setItem(USERS_KEY, JSON.stringify(updatedUsers));
+  dispatchStorageEvent();
+  return newUser;
+};
+
+export const loginUser = (email: string, password: string): User | null => {
+  const users = getRegisteredUsers();
+  const user = users.find(u => u.email === email && u.password === password);
+  return user || null;
+};
+
+export const getUserByEmail = (email: string): User | null => {
+  const users = getRegisteredUsers();
+  return users.find(u => u.email === email) || null;
+};

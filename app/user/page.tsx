@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { User, ShoppingBag, Heart, LogOut, Settings } from "lucide-react";
 import {
@@ -8,6 +8,7 @@ import {
   getCartProducts,
   CartProduct,
 } from "@/utils/localStorage";
+import { getUserInfo, logout } from "@/utils/auth";
 
 // InputField Component
 interface InputFieldProps {
@@ -46,13 +47,39 @@ const InputField = ({
 
 // ProfileDetails Component
 const ProfileDetails = () => {
+  const [user, setUser] = useState(getUserInfo());
   const [formData, setFormData] = useState({
-    fullName: "Alijon Valiyev",
-    email: "alijon@example.com",
-    phone: "+998 90 123 45 67",
+    fullName: user ? `${user.firstName} ${user.lastName}` : "",
+    email: user?.email || "",
+    phone: user?.phone || "",
     address: "Toshkent, Chilonzor 5-uy",
   });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Update form when user info changes
+    const updateUserInfo = () => {
+      const currentUser = getUserInfo();
+      if (currentUser) {
+        setUser(currentUser);
+        setFormData({
+          fullName: `${currentUser.firstName} ${currentUser.lastName}`,
+          email: currentUser.email || "",
+          phone: currentUser.phone || "",
+          address: "Toshkent, Chilonzor 5-uy",
+        });
+      }
+    };
+
+    updateUserInfo();
+
+    // Listen for localStorage changes
+    window.addEventListener("localStorageChange", updateUserInfo);
+    
+    return () => {
+      window.removeEventListener("localStorageChange", updateUserInfo);
+    };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -203,9 +230,7 @@ const LogoutAction = () => {
 
   const handleLogout = useCallback(() => {
     // Clear user-related localStorage (e.g., profile, cart, wishlist)
-    localStorage.removeItem("userProfile");
-    localStorage.removeItem("likedProducts");
-    localStorage.removeItem("cartProducts");
+    logout();
     router.push("/login");
   }, [router]);
 
